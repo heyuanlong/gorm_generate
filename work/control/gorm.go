@@ -6,6 +6,8 @@ import (
 	"fmt"
 	kinit "gorm_generate/initialize"
 	kbase "gorm_generate/work/control/base"
+	kdao "gorm_generate/work/dao"
+	"net/http"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -19,16 +21,28 @@ func Newgorm() *gorm {
 }
 func (ts *gorm) Load() []kbase.RouteWrapStruct {
 	m := make([]kbase.RouteWrapStruct, 0)
-	m = append(m, kbase.Wrap("GET", "/gorm", ts.gorm, 0))
+	m = append(m, kbase.Wrap("GET", "/gorm", ts.gormindex, 0))
+	m = append(m, kbase.Wrap("POST", "/gorm", ts.gorm, 0))
 	return m
 }
 
+// 127.0.0.1:8089/gorm
+func (ts *gorm) gormindex(c *gin.Context) {
+	c.HTML(http.StatusOK, "gorm.html", gin.H{})
+}
+
+// 127.0.0.1:8089/gorm
 func (ts *gorm) gorm(c *gin.Context) {
+	tablename := kbase.GetParam(c, "tablename")
 	sql := kbase.GetParam(c, "sql")
-	//dao.Create(nil, sql, "")
-	kinit.LogError.Println(sql)
+
+	kdao.DropTable(nil, tablename)
+	kdao.Create(nil, sql)
+
+	defer kdao.DropTable(nil, tablename)
+
 	mysql_mysqldb, _ := kinit.Conf.GetString("mysql.mysqldb")
-	ts.run(c, mysql_mysqldb, "pt_ads")
+	ts.run(c, mysql_mysqldb, tablename)
 }
 
 func (ts *gorm) run(c *gin.Context, table_schema, table_name string) {

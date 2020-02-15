@@ -2,6 +2,8 @@ package route
 
 import (
 	"fmt"
+	"log"
+	"path/filepath"
 
 	kinit "gorm_generate/initialize"
 	kbase "gorm_generate/work/control/base"
@@ -27,8 +29,37 @@ func NewRouteStruct(port int) *RouteStruct {
 	ts.engine = gin.New()
 	ts.engine.Use(gin.Logger(), gin.Recovery())
 
+	ts.engine.Static("/assets", "./view/assets")
+	ts.engine.Static("/upload", "./view/upload")
+
+	ts.LoadHTML()
 	return ts
 }
+
+func (ts *RouteStruct) LoadHTML() {
+	templates := make([]string, 0)
+	firstTemplates, err := filepath.Glob("view/**/*.html")
+	if nil != err {
+		log.Fatal("load theme templates failed: " + err.Error())
+	}
+
+	rootTemplates, err := filepath.Glob("view/*.html")
+	if nil != err {
+		log.Fatal("load theme templates failed: " + err.Error())
+	}
+
+	twoTemplates, err := filepath.Glob("view/**/**/*.html")
+	if nil != err {
+		log.Fatal("load theme templates failed: " + err.Error())
+	}
+
+	templates = append(templates, firstTemplates...)
+	templates = append(templates, rootTemplates...)
+	templates = append(templates, twoTemplates...)
+
+	ts.engine.LoadHTMLFiles(templates...)
+}
+
 func (ts *RouteStruct) Load(control ControlInterface) {
 	wps := control.Load()
 	for _, v := range wps {

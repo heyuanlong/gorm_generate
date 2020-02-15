@@ -6,18 +6,24 @@ import (
 	jgorm "github.com/jinzhu/gorm"
 )
 
-func Create(tx *jgorm.DB, dropsql string, createsql string) {
+func DropTable(tx *jgorm.DB, tablename string) error {
+	if tx == nil {
+		tx = kinit.Gorm
+	}
+	if err := tx.Exec("DROP TABLE IF EXISTS `" + tablename + "`;").Error; err != nil {
+		kinit.LogError.Println(err)
+		return err
+	}
+	return nil
+}
+func Create(tx *jgorm.DB, createsql string) error {
 	if tx == nil {
 		tx = kinit.Gorm
 	}
 
-	if err := tx.Exec(dropsql).Error; err != nil {
-		kinit.LogError.Println(err)
-		return
-	}
 	if err := tx.Exec(createsql).Error; err != nil {
 		kinit.LogError.Println(err)
-		return
+		return err
 	}
-	return
+	return nil
 }

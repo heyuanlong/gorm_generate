@@ -1,0 +1,32 @@
+{{define "gorm.html"}} {{ template "header" . }}
+<style>
+    label {
+        line-height: 34px;
+    }
+</style>
+
+<body class="gray-bg">
+    <dformiv class="wrapper wrapper-content">
+        <div class="ibox-title">
+
+        </div>
+        <form role="form" action="/gorm" method="post">
+            <div class="ibox-title">
+                <div class="form-group">
+
+                    <input type="text" name="tablename" placeholder="tablename" class="form-control" value="{{ .tablename }}">&nbsp;&nbsp;
+                    <br/>
+                    <br/>
+                    <textarea rows="30" cols="90" name="sql" class="form-control" value=""></textarea> &nbsp;&nbsp;
+                    <br/>
+                    <button type="submit" class="btn btn-sm btn-primary">generate</button>
+                </div>
+            </div>
+        </form>
+        </div>
+</body>
+
+{{ template "footer" . }}
+<script>
+</script>
+{{end}}
