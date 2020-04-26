@@ -70,7 +70,9 @@ func (ts *gorm) run(c *gin.Context, table_schema, table_name string) {
 
 func (ts *gorm) createTable(table_name string, rows *ksql.Rows) string {
 	var sql string
-	sql += "package model\n\n\n\n type " + ts.converUpper(table_name) + " struct {\n"
+	sql += "package model\n\n"
+	sql += "var Obj"+ ts.converUpper(table_name)+" "+ ts.converUpper(table_name) + " \n"
+	sql += "type " + ts.converUpper(table_name) + " struct {\n"
 	for rows.Next() {
 		column_name := ""
 		data_type := ""
@@ -97,13 +99,13 @@ func (ts *gorm) createTable(table_name string, rows *ksql.Rows) string {
 func (ts *gorm) insertTable(table_name string, rows *ksql.Rows) string {
 	var bf bytes.Buffer
 	var bt bytes.Buffer
-	//func InsertCoinTransformLog(tx *jgorm.DB, user_id, dst_coin_id, src_coin_id int, dst_coins, src_coins, trans float64, order_id int) (kmodel.FmCoinTransformLog, error) {
-	fmt.Fprintf(&bf, "func Insert%s(tx *jgorm.DB", ts.converUpper(table_name))
+	//func InsertCoinTransformLog(tx *jgorm.DB, user_id, dst_coin_id, src_coin_id int, dst_coins, src_coins, trans float64, order_id int) (FmCoinTransformLog, error) {
+	fmt.Fprintf(&bf, "func (%s)Insert(tx *jgorm.DB", ts.converUpper(table_name))
 	fmt.Fprintf(&bt, ` { 
 	if tx == nil {  
 		tx = kinit.Gorm
 	}`)
-	fmt.Fprintf(&bt, "\n\tobj := kmodel.%s{\n", ts.converUpper(table_name))
+	fmt.Fprintf(&bt, "\n\tobj := %s{\n", ts.converUpper(table_name))
 	for rows.Next() {
 		column_name := ""
 		data_type := ""
@@ -111,11 +113,19 @@ func (ts *gorm) insertTable(table_name string, rows *ksql.Rows) string {
 		rows.Scan(&column_name, &data_type, &column_key)
 
 		if column_key != "PRI" {
-			fmt.Fprintf(&bf, ", %s %s", column_name, ts.getType(data_type, column_name))
-			fmt.Fprintf(&bt, "\t\t%s:%s,\n", ts.converUpper(column_name), column_name)
+			if strings.Index(column_name,"created_at")>-1 ||
+				strings.Index(column_name,"updated_at")>-1 ||
+				strings.Index(column_name,"_time")>-1 ||
+				strings.Index(column_name,"time_")>-1{
+				fmt.Fprintf(&bt, "\t\t%s:%s,\n", ts.converUpper(column_name), "time.Now().Format(\"2006-01-02 15:04:05\")" )
+			}else{
+				fmt.Fprintf(&bf, ", %s %s", column_name, ts.getType(data_type, column_name))
+				fmt.Fprintf(&bt, "\t\t%s:%s,\n", ts.converUpper(column_name), column_name)
+			}
+
 		}
 	}
-	fmt.Fprintf(&bf, ")(kmodel.%s,error)", ts.converUpper(table_name))
+	fmt.Fprintf(&bf, ")(%s,error)", ts.converUpper(table_name))
 	fmt.Fprintf(&bt, `	}
 	if err := tx.Create(&obj).Error; err != nil {
 		kinit.LogError.Println(err)
@@ -138,11 +148,11 @@ func (ts *gorm) getTable(table_name string, rows *ksql.Rows) string {
 			return ""
 		}
 		sql += fmt.Sprintf(`
-func Get%sBy%s(tx *jgorm.DB, %s xxxx) kmodel.%s {
+func (%s)GetBy%s(tx *jgorm.DB, %s xxxx) %s {
 	if tx == nil {
 		tx = kinit.Gorm
 	}
-	var objs kmodel.%s
+	var obj %s
 	tx.Where("%s=? ", %s).First(&objs)
 	return objs
 }`, ts.converUpper(table_name), ts.converUpper(column_name), column_name, ts.converUpper(table_name),
@@ -165,12 +175,12 @@ func (ts *gorm) updateTable(table_name string, rows *ksql.Rows) string {
 			return ""
 		}
 		sql += fmt.Sprintf(`
-func Update%sBy%s(tx *jgorm.DB, %s xxx) error {
+func (%s)UpdateBy%s(tx *jgorm.DB, %s xxx,m map[string]interface{}) error {
 	if tx == nil {
 		tx = kinit.Gorm
 	}
 
-	if err := tx.Model(kmodel.%s{}).Where("%s=?", %s).Updates(map[string]interface{}{"xxx": xxxx}).Error; err != nil {
+	if err := tx.Model(%s{}).Where("%s=?", %s).Updates(m).Error; err != nil {
 		kinit.LogError.Println(err)
 		return err
 	}
